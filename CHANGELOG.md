@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3
+
+- Rename GitHub repository references to `HA-Qianhai-Power-Integration`.
+- Add README version badge for release visibility.
+
 ## 0.4.2
 
 - Default-disable tiered electricity sensors when the latest bill does not include that tier.
