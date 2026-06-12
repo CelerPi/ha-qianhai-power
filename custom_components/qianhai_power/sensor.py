@@ -24,6 +24,7 @@ from .const import DATA_COORDINATOR, DOMAIN
 class QianhaiPowerSensorEntityDescription(SensorEntityDescription):
     value_fn: Callable[[QianhaiPowerData], float | int | str | None]
     attrs_fn: Callable[[QianhaiPowerData], dict[str, Any]] | None = None
+    step: int | None = None
 
 
 SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
@@ -256,16 +257,19 @@ SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
         value_fn=lambda data: data.latest_bill.step1_power if data.latest_bill else None,
+        step=1,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step1_name",
         translation_key="bill_step1_name",
         value_fn=lambda data: data.latest_bill.step1_name if data.latest_bill else None,
+        step=1,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step1_percent",
         translation_key="bill_step1_percent",
         value_fn=lambda data: data.latest_bill.step1_percent if data.latest_bill else None,
+        step=1,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step1_fee",
@@ -273,12 +277,14 @@ SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
         native_unit_of_measurement="CNY",
         device_class=SensorDeviceClass.MONETARY,
         value_fn=lambda data: data.latest_bill.step1_fee if data.latest_bill else None,
+        step=1,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step1_price",
         translation_key="bill_step1_price",
         native_unit_of_measurement="CNY/kWh",
         value_fn=lambda data: data.latest_bill.step1_price if data.latest_bill else None,
+        step=1,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step2_power",
@@ -287,16 +293,19 @@ SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
         value_fn=lambda data: data.latest_bill.step2_power if data.latest_bill else None,
+        step=2,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step2_name",
         translation_key="bill_step2_name",
         value_fn=lambda data: data.latest_bill.step2_name if data.latest_bill else None,
+        step=2,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step2_percent",
         translation_key="bill_step2_percent",
         value_fn=lambda data: data.latest_bill.step2_percent if data.latest_bill else None,
+        step=2,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step2_fee",
@@ -304,12 +313,14 @@ SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
         native_unit_of_measurement="CNY",
         device_class=SensorDeviceClass.MONETARY,
         value_fn=lambda data: data.latest_bill.step2_fee if data.latest_bill else None,
+        step=2,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step2_price",
         translation_key="bill_step2_price",
         native_unit_of_measurement="CNY/kWh",
         value_fn=lambda data: data.latest_bill.step2_price if data.latest_bill else None,
+        step=2,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step3_power",
@@ -318,16 +329,19 @@ SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL,
         value_fn=lambda data: data.latest_bill.step3_power if data.latest_bill else None,
+        step=3,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step3_name",
         translation_key="bill_step3_name",
         value_fn=lambda data: data.latest_bill.step3_name if data.latest_bill else None,
+        step=3,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step3_percent",
         translation_key="bill_step3_percent",
         value_fn=lambda data: data.latest_bill.step3_percent if data.latest_bill else None,
+        step=3,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step3_fee",
@@ -335,12 +349,14 @@ SENSORS: tuple[QianhaiPowerSensorEntityDescription, ...] = (
         native_unit_of_measurement="CNY",
         device_class=SensorDeviceClass.MONETARY,
         value_fn=lambda data: data.latest_bill.step3_fee if data.latest_bill else None,
+        step=3,
     ),
     QianhaiPowerSensorEntityDescription(
         key="bill_step3_price",
         translation_key="bill_step3_price",
         native_unit_of_measurement="CNY/kWh",
         value_fn=lambda data: data.latest_bill.step3_price if data.latest_bill else None,
+        step=3,
     ),
 )
 
@@ -376,6 +392,11 @@ class QianhaiPowerSensor(CoordinatorEntity[DataUpdateCoordinator[QianhaiPowerDat
             "name": entry.title,
             "manufacturer": "Qianhai Power",
         }
+        if description.step is not None:
+            self._attr_entity_registry_enabled_default = _step_is_available(
+                coordinator.data,
+                description.step,
+            )
 
     @property
     def native_value(self) -> float | int | str | None:
@@ -469,3 +490,18 @@ def _compact_attrs(attrs: dict[str, Any]) -> dict[str, Any] | None:
         if value not in (None, "")
     }
     return compacted or None
+
+
+def _step_is_available(data: QianhaiPowerData, step: int) -> bool:
+    bill = data.latest_bill
+    if bill is None:
+        return step == 1
+
+    values = (
+        getattr(bill, f"step{step}_power", None),
+        getattr(bill, f"step{step}_fee", None),
+        getattr(bill, f"step{step}_price", None),
+        getattr(bill, f"step{step}_name", None),
+        getattr(bill, f"step{step}_percent", None),
+    )
+    return any(value not in (None, "") for value in values)

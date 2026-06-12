@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- Default-disable tiered electricity sensors when the latest bill does not include that tier.
+
 ## 0.4.1
 
 - Add monthly refresh scheduling for the 2nd day of each month at 00:00.
